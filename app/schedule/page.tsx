@@ -5,24 +5,6 @@ import { supabase } from '../../lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-const DISCIPLINE_COLORS: any = {
-  Physics: 'bg-blue-600',
-  Chemistry: 'bg-indigo-600',
-  Biology: 'bg-emerald-600',
-  Engineering: 'bg-amber-600',
-  Maths: 'bg-rose-600',
-  Other: 'bg-slate-600'
-};
-
-const DISCIPLINE_LIGHT: any = {
-  Physics: 'bg-blue-50 text-blue-600 border-blue-100',
-  Chemistry: 'bg-indigo-50 text-indigo-600 border-indigo-100',
-  Biology: 'bg-emerald-50 text-emerald-600 border-emerald-100',
-  Engineering: 'bg-amber-50 text-amber-600 border-amber-100',
-  Maths: 'bg-rose-50 text-rose-600 border-rose-100',
-  Other: 'bg-slate-50 text-slate-600 border-slate-100'
-};
-
 export default function SchedulePage() {
   const [user, setUser] = useState<any>(null);
   const [mySchedule, setMySchedule] = useState<any[]>([]);
@@ -129,7 +111,7 @@ export default function SchedulePage() {
                      {row?.activity_id && (
                         <>
                             <button onClick={() => updateStatus(date, 'kit_ordered', !row.kit_ordered)} className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase transition-all border ${row.kit_ordered ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-slate-400 border-slate-200 hover:border-indigo-600'}`}>Kit {row.kit_ordered ? 'Ordered' : 'Ready to Order'}</button>
-                            <button onClick={() => updateStatus(date, 'is_completed', !row.is_completed)} className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase transition-all border ${row.is_completed ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-white text-slate-400 border-slate-200 hover:border-emerald-500'}`}>{row.is_completed ? 'Finished' : 'Mark Done'}</button>
+                            <button onClick={() => updateStatus(date, 'is_completed', !row.is_completed)} className={`px-4 py-2 rounded-lg text-[9px] font-black uppercase transition-all border ${row.is_completed ? 'bg-emerald-50 text-white border-emerald-500' : 'bg-white text-slate-400 border-slate-200 hover:border-emerald-500'}`}>{row.is_completed ? 'Finished' : 'Mark Done'}</button>
                         </>
                      )}
                   </div>
@@ -144,23 +126,35 @@ export default function SchedulePage() {
                                 <p className="text-slate-600 leading-relaxed italic font-medium">{activity.description}</p>
                             </div>
                             <div className="grid grid-cols-2 gap-2">
-                                <a href={activity.drive_slides_url} target="_blank" className="bg-slate-900 text-white p-3 rounded-xl text-center font-black uppercase text-[10px] shadow-sm hover:scale-105 transition-transform">Slides</a>
-                                <a href={activity.drive_worksheets_url} target="_blank" className="bg-indigo-600 text-white p-3 rounded-xl text-center font-black uppercase text-[10px] shadow-sm hover:scale-105 transition-transform">Worksheets</a>
-                                <Link href={`/library?id=${activity.activity_id}`} className="col-span-2 border-2 border-indigo-100 bg-white text-indigo-600 p-3 rounded-xl text-center font-black uppercase text-[10px] hover:border-indigo-600">Details & Steps →</Link>
+                                <a 
+                                  href={activity.drive_slides_url || '#'} 
+                                  target={activity.drive_slides_url ? "_blank" : undefined}
+                                  className={`p-3 rounded-xl text-center font-black uppercase text-[10px] transition-all shadow-sm ${!activity.drive_slides_url ? 'bg-slate-200 text-slate-400 pointer-events-none' : 'bg-slate-900 text-white hover:scale-105'}`}
+                                >
+                                  Slides
+                                </a>
+                                <a 
+                                  href={activity.drive_worksheets_url || '#'} 
+                                  target={activity.drive_worksheets_url ? "_blank" : undefined}
+                                  className={`p-3 rounded-xl text-center font-black uppercase text-[10px] transition-all shadow-sm ${!activity.drive_worksheets_url ? 'bg-slate-200 text-slate-400 pointer-events-none' : 'bg-indigo-600 text-white hover:scale-105'}`}
+                                >
+                                  Worksheets
+                                </a>
+                                <Link href={`/library?id=${activity.activity_id}`} className="col-span-2 border-2 border-indigo-100 bg-white text-indigo-600 p-3 rounded-xl text-center font-black uppercase text-[10px] hover:border-indigo-600 transition-all">Details & Steps →</Link>
                             </div>
                         </div>
 
-                        <div className="lg:col-span-2 grid grid-cols-2 gap-6 text-[11px]">
+                        <div className="lg:col-span-2 grid grid-cols-2 gap-6">
                             <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
                                 <h4 className="text-[10px] font-black uppercase text-emerald-500 mb-4 tracking-widest border-b border-emerald-50 pb-2 flex justify-between"><span>Consumables</span><span>To Buy</span></h4>
                                 <ul className="space-y-3 font-black uppercase italic tracking-tighter">
                                     {activity.activities_equipment?.filter((e:any) => e.equipment_master_list?.type?.toLowerCase().trim().includes('consumable')).map((item:any, i:number) => (
                                         <li key={i} className="flex justify-between items-center text-slate-700"><span>{item.equipment_master_list.item_title}</span><span className="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-lg text-lg leading-none">{calculateQty(item, row.planned_pupils, row.planned_group_size)}</span></li>
                                     ))}
-                                    {activity.activities_equipment?.filter((e:any) => e.equipment_master_list?.type?.toLowerCase().trim().includes('consumable')).length === 0 && <li className="text-[10px] text-slate-300 italic text-center py-4">No consumables</li>}
+                                    {activity.activities_equipment?.filter((e:any) => e.equipment_master_list?.type?.toLowerCase().trim().includes('consumable')).length === 0 && <li className="text-[10px] text-slate-300 italic text-center py-4 uppercase">No consumables</li>}
                                 </ul>
                             </div>
-                            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm text-[11px]">
+                            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
                                 <h4 className="text-[10px] font-black uppercase text-indigo-500 mb-4 tracking-widest border-b border-indigo-50 pb-2 flex justify-between"><span>Equipment</span><span>In Lab</span></h4>
                                 <ul className="space-y-3 font-black uppercase italic tracking-tighter">
                                     {activity.activities_equipment?.filter((e:any) => !e.equipment_master_list?.type?.toLowerCase().trim().includes('consumable')).map((item:any, i:number) => (

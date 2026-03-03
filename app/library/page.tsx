@@ -14,12 +14,12 @@ const DISCIPLINE_COLORS: any = {
 };
 
 const DISCIPLINE_LIGHT: any = {
-  Physics: 'bg-blue-50 text-blue-600 border-blue-100',
-  Chemistry: 'bg-indigo-50 text-indigo-600 border-indigo-100',
-  Biology: 'bg-emerald-50 text-emerald-600 border-emerald-100',
-  Engineering: 'bg-amber-50 text-amber-600 border-amber-100',
-  Maths: 'bg-rose-50 text-rose-600 border-rose-100',
-  Other: 'bg-slate-50 text-slate-600 border-slate-100'
+  Physics: 'bg-blue-50 text-blue-600',
+  Chemistry: 'bg-indigo-50 text-indigo-600',
+  Biology: 'bg-emerald-50 text-emerald-600',
+  Engineering: 'bg-amber-50 text-amber-600',
+  Maths: 'bg-rose-50 text-rose-600',
+  Other: 'bg-slate-50 text-slate-600'
 };
 
 export default function LibraryPage() {
@@ -41,13 +41,22 @@ export default function LibraryPage() {
     async function load() {
       setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
-      const { data: acts } = await supabase.from('activities').select(`*, activities_equipment!linked_activity (unit_type, ratio, min_quantity, notes, equipment_master_list!master_item_id ( item_title, type )), lesson_steps!linked_activity ( step_title, step_duration, step_order, step_notes )`);
+      const { data: acts } = await supabase.from('activities').select(`
+        *,
+        activities_equipment!linked_activity (
+          unit_type, ratio, min_quantity, notes,
+          equipment_master_list!master_item_id ( item_title, type )
+        ),
+        lesson_steps!linked_activity ( step_title, step_duration, step_order, step_notes )
+      `);
+
       if (user) {
         const { data: sched } = await supabase.from('user_schedules').select('*').eq('user_id', user.id);
         const { data: setts } = await supabase.from('user_settings').select('*').eq('user_id', user.id).single();
         setMySchedule(sched || []);
         setTermSettings(setts);
       }
+
       setActivities(acts || []);
       if (activityIdFromUrl && acts) {
         const found = acts.find(a => a.activity_id.toString() === activityIdFromUrl);
@@ -86,7 +95,9 @@ export default function LibraryPage() {
 
   const handleAssign = async (date: string) => {
     const { data: { user } } = await supabase.auth.getUser();
-    await supabase.from('user_schedules').upsert({ user_id: user?.id, activity_id: selected.activity_id, scheduled_date: date, planned_pupils: pupils, planned_group_size: groupSize }, { onConflict: 'user_id,scheduled_date' });
+    await supabase.from('user_schedules').upsert({
+      user_id: user?.id, activity_id: selected.activity_id, scheduled_date: date, planned_pupils: pupils, planned_group_size: groupSize
+    }, { onConflict: 'user_id,scheduled_date' });
     setIsModalOpen(false);
     window.location.reload(); 
   };
@@ -102,80 +113,113 @@ export default function LibraryPage() {
   return (
     <div className="h-[calc(100vh-60px)] flex bg-white font-sans text-slate-900 overflow-hidden text-sm">
       
-      {/* SIDEBAR */}
       <aside className="w-1/4 border-r border-slate-200 bg-slate-50 flex flex-col flex-shrink-0">
         <div className="p-4 border-b border-slate-200 space-y-4">
-          <div>
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Filter Discipline</label>
-            <select value={discipline} onChange={(e) => setDiscipline(e.target.value)} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-indigo-600 outline-none">
-              <option value="All">All Disciplines</option>
-              <option value="Biology">Biology</option>
-              <option value="Chemistry">Chemistry</option>
-              <option value="Physics">Physics</option>
-              <option value="Engineering">Engineering</option>
-            </select>
-          </div>
-          <div>
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Age Filter</label>
-            <select value={ageRange} onChange={(e) => setAgeRange(e.target.value)} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-indigo-600 outline-none">
-              <option value="All">Any Age</option>
-              <option value="7">Year 3/4</option>
-              <option value="10">Year 5/6</option>
-              <option value="12">Year 7/8</option>
-              <option value="14">Year 10+</option>
-            </select>
-          </div>
-          <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-2">
-              <div className="flex justify-between text-[10px] font-black text-slate-400 uppercase">
-                  <span>{pupils} Pupils</span>
-                  <span className="text-indigo-600 font-black">{Math.ceil(pupils/groupSize)} Groups</span>
-              </div>
-              <input type="range" min="1" max="10" value={groupSize} onChange={(e) => setGroupSize(Number(e.target.value))} className="w-full accent-indigo-600 h-1" />
+          <div className="space-y-3">
+            <div>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Field</label>
+              <select value={discipline} onChange={(e) => setDiscipline(e.target.value)} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-indigo-600 outline-none">
+                <option value="All">All Disciplines</option>
+                <option value="Biology">Biology</option>
+                <option value="Chemistry">Chemistry</option>
+                <option value="Physics">Physics</option>
+                <option value="Engineering">Engineering</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Ages</label>
+              <select value={ageRange} onChange={(e) => setAgeRange(e.target.value)} className="w-full p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-indigo-600 outline-none">
+                <option value="All">Any Age</option>
+                <option value="7">Year 3/4</option>
+                <option value="10">Year 5/6</option>
+                <option value="12">Year 7/8</option>
+                <option value="14">Year 10+</option>
+              </select>
+            </div>
+            <div className="bg-white p-3 rounded-xl border border-slate-200 space-y-2">
+                <div className="flex justify-between text-[10px] font-black text-slate-400 uppercase">
+                    <span>{pupils} Pupils</span>
+                    <span className="text-indigo-600 font-black">{Math.ceil(pupils/groupSize)} Groups</span>
+                </div>
+                <input type="range" min="1" max="10" value={groupSize} onChange={(e) => setGroupSize(Number(e.target.value))} className="w-full accent-indigo-600 h-1" />
+            </div>
           </div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-2 bg-white">
           {filteredActivities.map((a) => (
-            <button key={a.activity_id} onClick={() => setSelected(a)} className={`w-full p-4 rounded-xl text-left transition-all mb-1 ${selected?.activity_id === a.activity_id ? (DISCIPLINE_COLORS[a.discipline] || 'bg-slate-600') + ' text-white shadow-lg scale-[1.01]' : 'hover:bg-slate-50 text-slate-600'}`}>
-              <div className={`text-[9px] font-black uppercase mb-0.5 ${selected?.activity_id === a.activity_id ? 'text-white/60' : 'text-indigo-400'}`}>{a.discipline}</div>
+            <button key={a.activity_id} onClick={() => setSelected(a)} className={`w-full p-4 rounded-xl text-left transition-all mb-1 ${selected?.activity_id === a.activity_id ? (DISCIPLINE_COLORS[a.discipline] || 'bg-slate-600') + ' text-white shadow-lg' : 'hover:bg-slate-50 text-slate-600'}`}>
+              <div className={`text-[9px] font-black uppercase mb-0.5 ${selected?.activity_id === a.activity_id ? 'text-white/60' : 'text-indigo-500'}`}>{a.discipline}</div>
               <div className="font-black leading-tight text-base uppercase italic tracking-tighter">{a.activity_title}</div>
             </button>
           ))}
         </div>
       </aside>
 
-      {/* CONTENT AREA */}
       <section className="flex-1 h-full overflow-y-auto p-8 bg-slate-100/30 scroll-smooth">
         {selected ? (
           <div className="max-w-4xl mx-auto space-y-4 pb-20 animate-in fade-in duration-300">
             
-            <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm">
-              <div className="flex justify-between items-start mb-6">
-                  <div className="space-y-1">
-                      <div className="flex gap-2">
-                          <span className={`${DISCIPLINE_LIGHT[selected.discipline]} px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest border`}>{selected.discipline}</span>
-                          <span className="bg-slate-50 text-slate-400 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest italic border border-slate-200">Ages {selected.age_min}-{selected.age_max}</span>
-                      </div>
-                      <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic leading-none">{selected.activity_title}</h2>
-                  </div>
-                  <div className="flex flex-col gap-2 shrink-0">
-                      <div className="flex gap-2">
-                          <a href={selected.drive_slides_url} target="_blank" className="bg-slate-900 text-white px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest hover:bg-black transition-all shadow-sm">Slides</a>
-                          <a href={selected.drive_worksheets_url} target="_blank" className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-sm">Sheets</a>
-                      </div>
-                      <button disabled={isAlreadyPlanned(selected.activity_id)} onClick={() => setIsModalOpen(true)} className={`w-full px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${isAlreadyPlanned(selected.activity_id) ? 'bg-slate-100 text-slate-400 border border-slate-200' : 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-md shadow-emerald-100'}`}>
-                          {isAlreadyPlanned(selected.activity_id) ? 'Activity Planned' : 'Assign to Term'}
-                      </button>
-                  </div>
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="p-8 border-b border-slate-100">
+                <div className="flex justify-between items-start mb-6">
+                    <div className="space-y-1">
+                        <div className="flex gap-2">
+                            <span className={`${DISCIPLINE_LIGHT[selected.discipline]} px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest border`}>{selected.discipline}</span>
+                            <span className="bg-slate-50 text-slate-400 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest italic border border-slate-200">Ages {selected.age_min}-{selected.age_max}</span>
+                        </div>
+                        <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic leading-none">{selected.activity_title}</h2>
+                    </div>
+                    <div className="flex flex-col gap-2 shrink-0">
+                        <div className="flex gap-2">
+                            <a 
+                              href={selected.drive_slides_url || '#'} 
+                              target={selected.drive_slides_url ? "_blank" : undefined}
+                              className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${!selected.drive_slides_url ? 'bg-slate-100 text-slate-300 pointer-events-none' : 'bg-slate-900 text-white hover:bg-black shadow-sm'}`}
+                            >
+                              Slides
+                            </a>
+                            <a 
+                              href={selected.drive_worksheets_url || '#'} 
+                              target={selected.drive_worksheets_url ? "_blank" : undefined}
+                              className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${!selected.drive_worksheets_url ? 'bg-slate-100 text-slate-300 pointer-events-none' : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm'}`}
+                            >
+                              Sheets
+                            </a>
+                        </div>
+                        <button 
+                          disabled={isAlreadyPlanned(selected.activity_id)}
+                          onClick={() => setIsModalOpen(true)} 
+                          className={`w-full px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
+                              isAlreadyPlanned(selected.activity_id) 
+                              ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed' 
+                              : 'bg-emerald-500 text-white hover:bg-emerald-600'
+                          }`}
+                        >
+                            {isAlreadyPlanned(selected.activity_id) ? 'Planned' : 'Assign to Term'}
+                        </button>
+                    </div>
+                </div>
+                <p className="text-slate-500 text-sm leading-relaxed border-t border-slate-100 pt-4 font-medium italic">"{selected.description}"</p>
               </div>
-              <p className="text-slate-500 text-sm leading-relaxed border-t border-slate-100 pt-4 font-medium italic">"{selected.description}"</p>
+
+              <div className="grid grid-cols-4 divide-x divide-slate-100 bg-slate-50/50">
+                  {[
+                      { label: 'Runtime', val: `${selected.activity_time}m` },
+                      { label: 'Prep Time', val: `${selected.prep_time}m` },
+                      { label: 'Tidy Time', val: `${selected.tidy_time}m` },
+                      { label: 'Stations', val: Math.ceil(pupils/groupSize) }
+                  ].map((m, i) => (
+                      <div key={i} className="py-3 px-4 text-center">
+                          <div className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{m.label}</div>
+                          <div className="text-xs font-black text-slate-800">{m.val}</div>
+                      </div>
+                  ))}
+              </div>
             </div>
 
             <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-                <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Time-Proportional Roadmap</h3>
-                    <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">{totalDuration}m Session Total</span>
-                </div>
+                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Roadmap</h3>
                 <div className="w-full flex h-10 rounded-xl overflow-hidden border border-slate-100">
                     {selected.lesson_steps?.sort((a:any, b:any) => a.step_order - b.step_order).map((step:any, i:number) => (
                         <div key={i} style={{ width: `${(step.step_duration / totalDuration) * 100}%` }} className={`${i % 2 === 0 ? DISCIPLINE_COLORS[selected.discipline] || 'bg-indigo-600' : 'bg-slate-800'} border-r border-white/10 last:border-0 h-full flex items-center justify-center`}>
@@ -187,7 +231,7 @@ export default function LibraryPage() {
 
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="px-6 py-3 bg-slate-50 border-b border-slate-100">
-                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Required Kit ({pupils} Pupils)</h3>
+                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Required Kit</h3>
                 </div>
                 <table className="w-full text-left">
                     <tbody className="divide-y divide-slate-50">
@@ -207,9 +251,9 @@ export default function LibraryPage() {
 
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="px-6 py-3 bg-slate-50 border-b border-slate-100">
-                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Detailed Instructions</h3>
+                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Instructions</h3>
                 </div>
-                <div className="p-8 space-y-10">
+                <div className="p-8 space-y-8">
                     {selected.lesson_steps?.sort((a:any, b:any) => a.step_order - b.step_order).map((step:any, i:number) => (
                         <div key={i} className="flex gap-10 items-start">
                             <div className="flex-shrink-0 w-32 border-r border-slate-100 pr-6">
@@ -224,7 +268,7 @@ export default function LibraryPage() {
             </div>
           </div>
         ) : (
-          <div className="h-full flex items-center justify-center text-slate-300 font-black italic uppercase tracking-widest text-2xl">Select a Session</div>
+          <div className="h-full flex items-center justify-center text-slate-300 font-black italic uppercase tracking-widest text-2xl">Select Session</div>
         )}
       </section>
 
@@ -247,7 +291,7 @@ export default function LibraryPage() {
                     );
                  })}
               </div>
-              <button onClick={() => setIsModalOpen(false)} className="w-full text-slate-300 font-bold py-2 uppercase text-[10px] tracking-widest">Close Window</button>
+              <button onClick={() => setIsModalOpen(false)} className="w-full text-slate-300 font-bold py-2 uppercase text-[10px] tracking-widest">Close</button>
            </div>
         </div>
       )}
